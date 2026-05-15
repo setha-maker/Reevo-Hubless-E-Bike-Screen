@@ -1,6 +1,6 @@
 # Reevo Display
 
-A custom dashboard for the **Beno Reevo** hubless ebike. The company shut down
+A custom dashboard for the **Beno Reevo** hubless ebike. The company abandoned the project
 and the original phone app is dead — this project replaces the entire app with
 an ESP32-S3 touchscreen that talks directly to the bike over BLE. No cloud, no
 SIM, no account.
@@ -51,7 +51,7 @@ The display takes 5V via USB-C. Three ways to power it:
    This is what my (Seth's) build does — the screen comes on when the bike
    does and goes off when the battery is removed.
 2. **USB-C battery brick** — easy, less clean.
-3. **Cheap 12V → 5V buck converter** off the battery — also fine.
+3. Any other power source, using a cheap buck converter to step down to 3V
 
 ### BLE pairing — read this before you flash
 
@@ -71,22 +71,25 @@ So, in order of likelihood, here's how you actually find the passkey:
 - **C.** Read it off the bike's BLE module debug UART. This sounds
   intimidating but it's actually how I recovered mine, and it's the
   reliable path for any bike that was ever paired with the original app.
+  You would need to take the bike apart completely and remove the main
+  board in the motor compartment. It's gnarly. It's scary. It's doable.
   Details below.
 
 ### Recovering the passkey via the UART (the real path for most bikes)
 
 1. Solder two thin wires to the **TX** and **GND** pads on the bike's
-   RN4870 BLE module. See [`docs/ble_solder_points.png`](docs/ble_solder_points.png)
+   RN4870 BLE module. While you're at it, grab a 5V to power the screen.
+   See [`docs/ble_solder_points.png`](docs/ble_solder_points.png)
    for the exact pads.
-2. Run those wires to a USB-UART adapter (CP2102, FTDI, CH340 — any will
+3. Run those wires to a USB-UART adapter (CP2102, FTDI, CH340 — any will
    do). Open a serial terminal at **115200 baud, 8N1, no flow control**.
-3. With the terminal listening, attempt to pair with the bike from
+4. With the terminal listening, attempt to pair with the bike from
    *anything* — your dashboard, **LightBlue** on iOS, **nRF Connect** on
    Android. Enter `111111` (or any 6-digit number — it'll fail). The pair
    attempt itself fails, but the bike's BLE module **prints the real
    expected passkey to the UART** when it sees the request. Wild but real.
-4. Read the passkey off the terminal. It's a 6-digit number.
-5. Punch it into the dashboard: open Settings → Command Prompt → Start AP,
+5. Read the passkey off the terminal. It's a 6-digit number.
+6. Punch it into the dashboard: open Settings → Command Prompt → Start AP,
    join the Wi-Fi, browser to `192.168.4.1/`, type:
    ```
    setblepin 234567
