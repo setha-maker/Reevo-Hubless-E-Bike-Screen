@@ -1,0 +1,59 @@
+# PlatformIO build artifacts
+firmware/.pio/
+firmware/.vscode/
+firmware/.pioenvs/
+firmware/.piolibdeps/
+
+# Generated assets (re-built by tools/image_to_rgb565.py from PNGs in
+# firmware/tools/source_images/ — see scripts/install.sh).
+firmware/src/assets.h
+
+# Personal user_config.h — copied from user_config.example.h and edited
+# locally. Never committed (would leak personal codes / Wi-Fi creds).
+firmware/include/user_config.h
+
+# ---- Project-private scratch (don't share publicly) -----------------------
+# Discovery scripts and their session logs from the BLE reverse-engineering
+# phase. The protocol findings doc captures the conclusions; the raw logs
+# don't add value publicly.
+/reevo_repl.py
+/reevo_connect.py
+/reevo_dashboard.py
+/reevo_explore_telemetry.py
+/reevo_mapping.json
+/reevo_ble_data.txt
+/repl_*.txt
+/repl_*.log
+/explore_*.txt
+/explore_*.jsonl
+/test_*.py
+/test_*.txt
+/test_*.json
+/vesc_*.py
+/Reevo*.CoolTermSettings
+
+# Old technical write-up (superseded by docs/protocol findings).
+/REEVO_TECHNICAL_REPORT.md
+
+# Raw Reevo APK + everything decompiled out of it. Including the original
+# .apk and the decompiled DEX/native source would be a copyright issue;
+# the analysis (protocol findings) is what we share.
+/reevo_apk/
+/jadx_tool/
+/images for motor/
+
+# OS noise
+.DS_Store
+Thumbs.db
+
+# Editor noise
+.idea/
+*.swp
+*.swo
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
