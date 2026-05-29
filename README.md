@@ -53,6 +53,19 @@ The display takes 5V via USB-C. Three ways to power it:
 2. **USB-C battery brick** — easy, less clean.
 3. **Cheap 12V → 5V buck converter** off the battery — also fine.
 
+### Enclosure (optional, 3D-printable)
+
+A two-piece printable case for the Freenove FNK0104B board lives in
+[`screen_enclosure/`](screen_enclosure/):
+
+| File | Part |
+|---|---|
+| [`Reevo_Screen_Top.stl`](screen_enclosure/Reevo_Screen_Top.stl) | Front bezel — frames the screen, snaps onto the bottom |
+| [`Reevo_Screen_Bottom.stl`](screen_enclosure/Reevo_Screen_Bottom.stl) | Rear shell — holds the board, routes the UART cable out |
+
+Both files preview in 3D right on GitHub — click either one to spin it
+around before you print.
+
 ### BLE pairing — read this before you flash
 
 The bike's BLE module (RN4870) ships with passkey `111111`. **That default
@@ -270,12 +283,13 @@ firmware/
   src/                       ← the actual firmware
   tools/
     image_to_rgb565.py       ← bakes splash, icons, QR into src/assets.h
-  tools/
-    image_to_rgb565.py       ← bakes splash, icons, QR into src/assets.h
     source_images/           ← source PNGs the converter reads
 docs/
   PROTOCOL.md                ← full BLE protocol reverse-engineering notes
   ble_solder_points.png      ← reference for the RN4870 UART tap
+screen_enclosure/
+  Reevo_Screen_Top.stl       ← 3D-printable front bezel
+  Reevo_Screen_Bottom.stl    ← 3D-printable rear shell
 scripts/
   install.sh                 ← macOS/Linux one-shot installer
 ```
