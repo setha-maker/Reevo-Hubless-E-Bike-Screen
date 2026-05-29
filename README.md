@@ -1,6 +1,6 @@
 # Reevo Display
 
-A custom dashboard for the **Beno Reevo** hubless ebike. The company shut down
+A custom dashboard for the **Beno Reevo** hubless ebike. The company abandoned the project
 and the original phone app is dead — this project replaces the entire app with
 an ESP32-S3 touchscreen that talks directly to the bike over BLE. No cloud, no
 SIM, no account.
@@ -54,7 +54,7 @@ The display takes 5V via USB-C. Three ways to power it:
    what my (Seth's) build does — the screen comes on when the bike does and
    goes off when the battery is removed.
 2. **USB-C battery brick** — easy, less clean.
-3. **Cheap 12V → 5V buck converter** off the battery — also fine.
+3. Any other power source, using a cheap buck converter to step down to 5V
 
 > **The display's 4-pin UART header carries two unrelated things.** The
 > **5V/GND** pins are just power (above). The **TX/RX** pins are the
@@ -108,6 +108,8 @@ So, in order of likelihood, here's how you actually find the passkey:
 - **C.** Read it off the bike's BLE module debug UART. This sounds
   intimidating but it's actually how I recovered mine, and it's the
   reliable path for any bike that was ever paired with the original app.
+  You would need to take the bike apart completely and remove the main
+  board in the motor compartment. It's gnarly. It's scary. It's doable.
   Details below.
 
 ### Recovering the passkey via the UART (the real path for most bikes)
@@ -117,7 +119,10 @@ real expected passkey to its debug UART**. You just have to read it. Solder
 two thin wires to the **TX** and **GND** pads on the module — see
 [`docs/ble_solder_points.png`](docs/ble_solder_points.png) for the exact
 pads. (You only need the module's **TX**; the connection is read-only, so
-its RX is never used.)
+its RX is never used.) While you've got the iron out and the bike open
+(bullet C above — you'll have the mainboard exposed), it's the natural
+moment to also grab a **5V** and **GND** pad for permanent screen power —
+see [Power](#power).
 
 There are two ways to read what it prints:
 
