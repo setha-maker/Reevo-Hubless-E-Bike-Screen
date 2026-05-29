@@ -76,6 +76,20 @@ A two-piece printable case for the Freenove FNK0104B board lives in
 Both files preview in 3D right on GitHub — click either one to spin it
 around before you print.
 
+**Printing notes.** The case is **not water-resistant** — and honestly you
+shouldn't ride a Reevo in the rain anyway. Treat the bike like the
+collector's item it now is: ride it carefully and seldom. Because of that,
+filament choice isn't critical — **PLA or PETG both work fine**. (The one
+exception: don't leave a PLA print baking in direct desert sun, à la
+Arizona — it'll soften.)
+
+For reference, mine (Seth's) is printed in **MatterHackers NylonX** at
+**0.24 mm layer height, 3 outer walls, 25% infill** — overkill that'll
+outlast every other piece of plastic on the bike. NylonX is a
+carbon-fiber-filled nylon, so it needs a **hardened nozzle** and an
+**enclosed printer**. Don't feel obligated to match that — use the
+filament and machine you already know and like.
+
 ### BLE pairing — read this before you flash
 
 The bike's BLE module (RN4870) ships with passkey `111111`. **That default
