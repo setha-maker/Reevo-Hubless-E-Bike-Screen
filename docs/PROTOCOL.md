@@ -187,9 +187,19 @@ Two distinct UARTs on the bike:
 | **PC console** (PC_TX / PC_RX pads on the mainboard) | Output-only. Bike boot log + periodic battery status. ANSI escape codes. |
 | **BLE-module debug** (where the dashboard's UART tap is wired) | The BLE module's own diagnostic output. ASCII at 115200 baud. |
 
-Both are **passive observation** — neither accepts commands. The dashboard's
-Diagnostics page exposes whichever UART is wired through, sanitized to
-printable ASCII.
+Both are **passive observation** — neither accepts commands. The tap is
+one-way by design: only the module's **TX → the dashboard's RX** carries
+data. The dashboard never transmits, so the reverse wire (dashboard TX →
+module RX) is unused, and nothing on this connection can actuate the bike.
+(Power for the screen, when tapped from the bike, comes from separate
+labeled 5V/GND pads on the mainboard — not from this debug port.)
+
+The dashboard's Diagnostics page renders whichever UART is wired through,
+sanitized to printable ASCII. This makes the screen itself a **passkey-
+recovery tool**: the BLE-module debug port prints the expected 6-digit
+bonding passkey whenever a pairing attempt comes in, so a built dashboard
+can read its own bike's rotated passkey on-screen with no computer or
+serial terminal involved.
 
 ---
 

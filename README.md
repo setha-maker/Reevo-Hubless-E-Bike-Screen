@@ -46,12 +46,22 @@ If you bought a different "CYD" board, see [Using a different display](#using-a-
 
 The display takes 5V via USB-C. Three ways to power it:
 
-1. **Recommended (clean):** Tap into the bike's **5V UART line on the
-   mainboard** and run that to the 5V/GND pins of the display's UART header.
-   This is what my (Seth's) build does — the screen comes on when the bike
-   does and goes off when the battery is removed.
+1. **Recommended (clean):** Solder to a labeled **5V** and **GND** pad on
+   the bike's mainboard and run those to the **5V** and **GND** pins of the
+   display's UART header. The board is fully silk-screened, so suitable 5V
+   and GND points are easy to find — just confirm with a multimeter that
+   the pad reads ~5V (not the 12V/48V rail) before you connect it. This is
+   what my (Seth's) build does — the screen comes on when the bike does and
+   goes off when the battery is removed.
 2. **USB-C battery brick** — easy, less clean.
 3. **Cheap 12V → 5V buck converter** off the battery — also fine.
+
+> **The display's 4-pin UART header carries two unrelated things.** The
+> **5V/GND** pins are just power (above). The **TX/RX** pins are the
+> optional BLE-debug data tap described below. They're independent — you
+> can wire power without the data tap, or vice versa. Nothing on this cable
+> controls the bike: the firmware only ever *listens* on RX. It cannot
+> send anything to the bike over this connection.
 
 ### Enclosure (optional, 3D-printable)
 
@@ -88,24 +98,44 @@ So, in order of likelihood, here's how you actually find the passkey:
 
 ### Recovering the passkey via the UART (the real path for most bikes)
 
-1. Solder two thin wires to the **TX** and **GND** pads on the bike's
-   RN4870 BLE module. See [`docs/ble_solder_points.png`](docs/ble_solder_points.png)
-   for the exact pads.
-2. Run those wires to a USB-UART adapter (CP2102, FTDI, CH340 — any will
-   do). Open a serial terminal at **115200 baud, 8N1, no flow control**.
-3. With the terminal listening, attempt to pair with the bike from
-   *anything* — your dashboard, **LightBlue** on iOS, **nRF Connect** on
-   Android. Enter `111111` (or any 6-digit number — it'll fail). The pair
-   attempt itself fails, but the bike's BLE module **prints the real
-   expected passkey to the UART** when it sees the request. Wild but real.
-4. Read the passkey off the terminal. It's a 6-digit number.
-5. Punch it into the dashboard: open Settings → Command Prompt → Start AP,
-   join the Wi-Fi, browser to `192.168.4.1/`, type:
-   ```
-   setblepin 234567
-   ```
-   (replace with the number you read). Then tap **Re-pair bike** under
-   Bluetooth settings. Done.
+When anything tries to bond, the bike's RN4870 BLE module **prints the
+real expected passkey to its debug UART**. You just have to read it. Solder
+two thin wires to the **TX** and **GND** pads on the module — see
+[`docs/ble_solder_points.png`](docs/ble_solder_points.png) for the exact
+pads. (You only need the module's **TX**; the connection is read-only, so
+its RX is never used.)
+
+There are two ways to read what it prints:
+
+#### Easiest — read it right on the dashboard (no computer)
+
+If you've already built the screen, it *is* your serial terminal. The
+dashboard's **Diagnostics page** renders whatever the BLE module chatters
+to its debug UART.
+
+1. Run the module's **TX → the display's UART-header RX**, and tie **GND**
+   to **GND**. (That's the data tap; powering the screen is a separate
+   pair of pads — see [Power](#power).)
+2. On the dashboard: Settings → **Diagnostics**.
+3. Trigger a pair attempt from *anything* — the dashboard itself,
+   **LightBlue** (iOS), **nRF Connect** (Android). Enter `111111` or any
+   6-digit number; it'll fail, that's fine.
+4. The 6-digit passkey scrolls onto the Diagnostics page.
+5. Settings → Command Prompt → Start AP, join the Wi-Fi, browse to
+   `192.168.4.1/`, and type `setblepin <the number>`. Tap **Re-pair bike**
+   under Bluetooth. Done — and you never touched a computer.
+
+#### Or — read it with a USB-UART adapter
+
+Handy if you want the passkey *before* the screen is built.
+
+1. Run the module's **TX** and **GND** to a USB-UART adapter (CP2102, FTDI,
+   CH340 — any will do; adapter **RX ← module TX**). Open a serial terminal
+   at **115200 baud, 8N1, no flow control**.
+2. With the terminal listening, attempt to pair from anything and enter any
+   6-digit number — it'll fail, but the module prints the real passkey.
+3. Read the 6-digit number off the terminal, then `setblepin <number>` on
+   the web prompt and **Re-pair bike**.
 
 **You do not need to do any of this on a new, never-paired Reevo** — the
 default `111111` works there. But for anything secondhand, plan on the
