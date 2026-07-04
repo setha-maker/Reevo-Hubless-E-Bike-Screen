@@ -21,6 +21,15 @@ Preferences g_prefs;
 char        g_pin[8]     = USER_DEFAULT_UNLOCK_PIN;
 char        g_passkey[8] = USER_DEFAULT_BLE_PASSKEY;
 
+bool is_digit_code(const char* code, size_t len) {
+    if (!code) return false;
+    if (strlen(code) != len) return false;
+    for (size_t i = 0; i < len; i++) {
+        if (code[i] < '0' || code[i] > '9') return false;
+    }
+    return true;
+}
+
 }  // namespace
 
 namespace secrets {
@@ -40,12 +49,7 @@ void setup() {
 const char* unlock_pin() { return g_pin; }
 
 bool is_valid_pin_format(const char* code) {
-    if (!code) return false;
-    if (strlen(code) != 4) return false;
-    for (int i = 0; i < 4; i++) {
-        if (code[i] < '0' || code[i] > '9') return false;
-    }
-    return true;
+    return is_digit_code(code, 4);
 }
 
 bool is_valid_unlock(const char* code) {
@@ -76,12 +80,7 @@ bool set_unlock_pin(const char* new_pin) {
 const char* pair_passkey() { return g_passkey; }
 
 bool is_valid_passkey_format(const char* code) {
-    if (!code) return false;
-    if (strlen(code) != 6) return false;
-    for (int i = 0; i < 6; i++) {
-        if (code[i] < '0' || code[i] > '9') return false;
-    }
-    return true;
+    return is_digit_code(code, 6);
 }
 
 bool set_pair_passkey(const char* code) {
