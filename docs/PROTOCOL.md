@@ -13,8 +13,17 @@ and live BLE capture via `reevo_repl.py` against a production Reevo unit.
 | **Notify** (bike → phone) | `49535343-1e4d-4bd9-ba61-23c647249616` |
 | **Write** (phone → bike) | `49535343-8841-43f4-a8d4-ecbe34729bb3` |
 | **Flow Control** | `49535343-4c8a-39b3-2f49-511cff073b7e` |
-| **PIN Code Change** | `3EB685DB-65F9-4CF6-A03A-E3EF65729F3D` |
-| **Fingerprint / Auth** | `FDD39AD0-238F-46AF-ADB4-6C85480369C7` |
+
+**These four are the only characteristics the bike exposes**, confirmed by live
+GATT scan. There is no separate PIN or fingerprint characteristic — settings,
+authentication and fingerprint enrollment all ride this same transparent-UART
+pipe as ASCII lines.
+
+> **Correction (2026-08-25).** Earlier revisions listed two extra UUIDs, a
+> "PIN Code Change" and a "Fingerprint / Auth" characteristic. Both were wrong —
+> they came from a `libapp.so` string dump rather than a GATT scan, and are
+> Windows `KNOWNFOLDERID` GUIDs pulled in by Flutter's desktop plugins. Removed.
+> Thanks to Marek Żurawski for the finding.
 
 The bike requires **BLE bonding/pairing** before any characteristic access.
 The factory-default RN4870 passkey is **`111111`**, which works on
