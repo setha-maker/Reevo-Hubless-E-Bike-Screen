@@ -34,6 +34,13 @@ bool activity_now() {
     return ride || assist_up;
 }
 
+void send_decrement(uint32_t now, bool can_send) {
+    if (can_send && (now - g_last_decrement_ms) >= DECREMENT_INTERVAL_MS) {
+        ble_send_command("0:C-1-11@");
+        g_last_decrement_ms = now;
+    }
+}
+
 }  // namespace
 
 namespace pas_timeout {
@@ -44,7 +51,7 @@ void setup() {
 
 void loop() {
     uint32_t now = millis();
-    bool can_send_now = (g_state.ble == BikeState::BleStatus::Connected);
+    bool can_send = (g_state.ble == BikeState::BleStatus::Connected);
 
     // Force-to-zero (lock action) runs independent of the timeout setting
     // and overrides any other state. Trickle out C-1-11 decrements until
@@ -54,10 +61,7 @@ void loop() {
             g_force_to_zero = false;
             return;
         }
-        if (can_send_now && (now - g_last_decrement_ms) >= DECREMENT_INTERVAL_MS) {
-            ble_send_command("0:C-1-11@");
-            g_last_decrement_ms = now;
-        }
+        send_decrement(now, can_send);
         return;
     }
 
@@ -82,18 +86,13 @@ void loop() {
     // would re-fire every loop because the idle clock is still > 10 min.
     if (g_latched_off) return;
 
-    bool can_send = (g_state.ble == BikeState::BleStatus::Connected);
-
     if (g_firing) {
         if (g_state.assist_level == 0) {
             g_firing      = false;
             g_latched_off = true;
             return;
         }
-        if (can_send && (now - g_last_decrement_ms) >= DECREMENT_INTERVAL_MS) {
-            ble_send_command("0:C-1-11@");   // pasDecrease
-            g_last_decrement_ms = now;
-        }
+        send_decrement(now, can_send);
         return;
     }
 
