@@ -602,6 +602,10 @@ void handle_root() {
     g_server.send_P(200, "text/html", INDEX_HTML);
 }
 
+void send_ok() {
+    g_server.send(200, "text/plain", "ok");
+}
+
 void handle_send() {
     String body = g_server.arg("plain");
     body.trim();
@@ -609,23 +613,18 @@ void handle_send() {
         g_server.send(400, "text/plain", "bad input");
         return;
     }
-    // 'story' replays the build narrative into the log.
-    if (body.equalsIgnoreCase("story")) {
-        start_trickle(STORY_LINES, STORY_LINE_COUNT);
-        g_server.send(200, "text/plain", "ok");
-        return;
-    }
-    // 'how' dumps everything we know about the Reevo protocol.
-    if (body.equalsIgnoreCase("how")) {
-        start_trickle(HOW_LINES, HOW_LINE_COUNT);
-        g_server.send(200, "text/plain", "ok");
-        return;
-    }
-    // 'newreevosetup' streams the full user manual.
-    if (body.equalsIgnoreCase("newreevosetup")) {
-        start_trickle(SETUP_LINES, SETUP_LINE_COUNT);
-        g_server.send(200, "text/plain", "ok");
-        return;
+    struct TrickleCmd { const char* name; const char* const* lines; size_t count; };
+    static constexpr TrickleCmd TRICKLE_CMDS[] = {
+        { "story",         STORY_LINES, STORY_LINE_COUNT },
+        { "how",           HOW_LINES,   HOW_LINE_COUNT   },
+        { "newreevosetup", SETUP_LINES, SETUP_LINE_COUNT },
+    };
+    for (const auto& tc : TRICKLE_CMDS) {
+        if (body.equalsIgnoreCase(tc.name)) {
+            start_trickle(tc.lines, tc.count);
+            send_ok();
+            return;
+        }
     }
     // If we're mid-lockreset, the body is the next step's input.
     if (g_lr_step != LockResetStep::IDLE) {
@@ -640,7 +639,7 @@ void handle_send() {
                     cmd_ap::log_notify("Wrong code. Lock reset cancelled.");
                     g_lr_step = LockResetStep::IDLE;
                 }
-                g_server.send(200, "text/plain", "ok");
+                send_ok();
                 return;
             case LockResetStep::AWAITING_NEW:
                 if (!secrets::is_valid_pin_format(body.c_str())) {
@@ -652,7 +651,7 @@ void handle_send() {
                     cmd_ap::log_notify("Confirm new 4-digit code:");
                     g_lr_step = LockResetStep::AWAITING_CONFIRM;
                 }
-                g_server.send(200, "text/plain", "ok");
+                send_ok();
                 return;
             case LockResetStep::AWAITING_CONFIRM:
                 if (strcmp(body.c_str(), g_lr_pending) == 0
@@ -663,7 +662,7 @@ void handle_send() {
                 }
                 g_lr_pending[0] = '\0';
                 g_lr_step = LockResetStep::IDLE;
-                g_server.send(200, "text/plain", "ok");
+                send_ok();
                 return;
             default: break;
         }
@@ -686,15 +685,28 @@ void handle_send() {
         *out = v;
         return true;
     };
-    if (body.length() >= 7 && body.substring(0, 7).equalsIgnoreCase("bgcolor")) {
+    struct ColorCmd {
+        const char* prefix; size_t len;
+        bool (*setter)(uint32_t);
+        const char* done; const char* usage;
+    };
+    static constexpr ColorCmd COLOR_CMDS[] = {
+        { "bgcolor",    7,  theme::set_main_bg,
+          "Background color updated.", "Usage: bgcolor #RRGGBB" },
+        { "speedcolor", 10, theme::set_main_speed,
+          "Speed color updated.",      "Usage: speedcolor #RRGGBB" },
+    };
+    for (const auto& cc : COLOR_CMDS) {
+        if (body.length() < cc.len ||
+            !body.substring(0, cc.len).equalsIgnoreCase(cc.prefix)) continue;
         uint32_t rgb;
-        if (parse_hex6(body.substring(7), &rgb)) {
-            theme::set_main_bg(rgb);
-            cmd_ap::log_notify("Background color updated.");
+        if (parse_hex6(body.substring(cc.len), &rgb)) {
+            cc.setter(rgb);
+            cmd_ap::log_notify(cc.done);
         } else {
-            cmd_ap::log_notify("Usage: bgcolor #RRGGBB");
+            cmd_ap::log_notify(cc.usage);
         }
-        g_server.send(200, "text/plain", "ok");
+        send_ok();
         return;
     }
     if (body.length() >= 9 && body.substring(0, 9).equalsIgnoreCase("setblepin")) {
@@ -706,18 +718,7 @@ void handle_send() {
         } else {
             cmd_ap::log_notify("Usage: setblepin XXXXXX  (exactly 6 digits)");
         }
-        g_server.send(200, "text/plain", "ok");
-        return;
-    }
-    if (body.length() >= 10 && body.substring(0, 10).equalsIgnoreCase("speedcolor")) {
-        uint32_t rgb;
-        if (parse_hex6(body.substring(10), &rgb)) {
-            theme::set_main_speed(rgb);
-            cmd_ap::log_notify("Speed color updated.");
-        } else {
-            cmd_ap::log_notify("Usage: speedcolor #RRGGBB");
-        }
-        g_server.send(200, "text/plain", "ok");
+        send_ok();
         return;
     }
     // 'lockreset' kicks off the change-PIN flow.
@@ -726,7 +727,7 @@ void handle_send() {
         cmd_ap::log_notify("Lock-code reset.");
         cmd_ap::log_notify("Enter CURRENT 4-digit lock code:");
         g_lr_step = LockResetStep::AWAITING_CURRENT;
-        g_server.send(200, "text/plain", "ok");
+        send_ok();
         return;
     }
     // ---- changewifi multi-step flow ----
@@ -741,14 +742,14 @@ void handle_send() {
                 cmd_ap::log_notify("Enter new password (8-63 chars):");
                 g_cw_step = ChangeWifiStep::AWAITING_PSK;
             }
-            g_server.send(200, "text/plain", "ok");
+            send_ok();
             return;
         }
         if (g_cw_step == ChangeWifiStep::AWAITING_PSK) {
             if (body.length() < 8 || body.length() > 63) {
                 cmd_ap::log_notify("Password must be 8-63 chars. Cancelled.");
                 g_cw_step = ChangeWifiStep::IDLE;
-                g_server.send(200, "text/plain", "ok");
+                send_ok();
                 return;
             }
             // Persist and queue an AP restart so the client has time to read
@@ -768,7 +769,7 @@ void handle_send() {
             g_restart_pending = true;
             g_restart_at_ms   = millis() + 2000;
             g_cw_step = ChangeWifiStep::IDLE;
-            g_server.send(200, "text/plain", "ok");
+            send_ok();
             return;
         }
     }
@@ -777,7 +778,7 @@ void handle_send() {
         cmd_ap::log_notify("Wi-Fi access-point reset.");
         cmd_ap::log_notify("Enter new SSID (1-32 chars):");
         g_cw_step = ChangeWifiStep::AWAITING_SSID;
-        g_server.send(200, "text/plain", "ok");
+        send_ok();
         return;
     }
     bool ok = ble_send_command(body.c_str());

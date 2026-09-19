@@ -357,6 +357,23 @@ void update_fade(uint8_t new_level) {
     }
 }
 
+void request_lock() {
+    if (g_state.kickstand_down) set_screen(Screen::LOCK_CONFIRM);
+    else                        show_toast("Deploy Kickstand To Lock");
+}
+
+void set_badge_light(bool on) {
+    ble_send_command(on ? "0:C-1-16@" : "0:C-1-17@");
+    g_state.badge_light = on ? BikeState::BadgeLight::On
+                             : BikeState::BadgeLight::Off;
+}
+
+int adjust_clamped(int tap, int val, int lo, int hi, int step) {
+    if (tap == -1) return max(lo, val - step);
+    if (tap == +1) return min(hi, val + step);
+    return val;
+}
+
 // ---------------------------------------------------------------------------
 //  MAIN dashboard
 // ---------------------------------------------------------------------------
@@ -548,18 +565,11 @@ void on_touch(int x, int y) {
     }
     if (col == 2) {
         // Toggle badge light. Unknown defaults to "turn on" first.
-        if (g_state.badge_light == BikeState::BadgeLight::On) {
-            ble_send_command("0:C-1-17@");
-            g_state.badge_light = BikeState::BadgeLight::Off;
-        } else {
-            ble_send_command("0:C-1-16@");
-            g_state.badge_light = BikeState::BadgeLight::On;
-        }
+        set_badge_light(g_state.badge_light != BikeState::BadgeLight::On);
         return;
     }
     if (col == 3) {
-        if (g_state.kickstand_down) set_screen(Screen::LOCK_CONFIRM);
-        else                        show_toast("Deploy Kickstand To Lock");
+        request_lock();
         return;
     }
 
@@ -956,19 +966,15 @@ void on_touch(int x, int y) {
         set_screen(Screen::MAIN);
         return;
     }
-    int s_tap = hit_stepper(x, y, 1);
-    if (s_tap == -1) g_state.sleep_timeout_s =
-        max(SLEEP_TIMEOUT_MIN_S, g_state.sleep_timeout_s - 5);
-    else if (s_tap == +1) g_state.sleep_timeout_s =
-        min(SLEEP_TIMEOUT_MAX_S, g_state.sleep_timeout_s + 5);
+    g_state.sleep_timeout_s = adjust_clamped(hit_stepper(x, y, 1),
+        g_state.sleep_timeout_s, SLEEP_TIMEOUT_MIN_S, SLEEP_TIMEOUT_MAX_S, 5);
     int b_tap = hit_stepper(x, y, 2);
-    if (b_tap == -1) g_state.brightness = max(BRIGHTNESS_MIN, g_state.brightness - 1);
-    else if (b_tap == +1) g_state.brightness = min(BRIGHTNESS_MAX, g_state.brightness + 1);
+    g_state.brightness = adjust_clamped(b_tap,
+        g_state.brightness, BRIGHTNESS_MIN, BRIGHTNESS_MAX, 1);
     if (b_tap == -1 || b_tap == +1) power::apply_brightness();
 
     int p_tap = hit_segmented2(x, y, 3);
-    if (p_tap == 0)      g_state.pas_timeout_enabled = true;
-    else if (p_tap == 1) g_state.pas_timeout_enabled = false;
+    if (p_tap >= 0) g_state.pas_timeout_enabled = (p_tap == 0);
 }
 
 }  // namespace DisplaySettings
@@ -997,9 +1003,8 @@ void draw(LGFX_Sprite& s) {
 
 void on_touch(int x, int y) {
     if (consumed_back(x, y, Screen::SETTINGS)) return;
-    int s_tap = hit_stepper(x, y, 0);
-    if (s_tap == -1) g_state.top_speed = max(TOP_SPEED_MIN, g_state.top_speed - 1);
-    else if (s_tap == +1) g_state.top_speed = min(TOP_SPEED_MAX, g_state.top_speed + 1);
+    g_state.top_speed = adjust_clamped(hit_stepper(x, y, 0),
+        g_state.top_speed, TOP_SPEED_MIN, TOP_SPEED_MAX, 1);
 }
 
 }  // namespace SpeedSettings
@@ -1050,26 +1055,17 @@ void on_touch(int x, int y) {
     int kcy = card_ctrl_y(0);
     if (y >= kcy && y < kcy + CARD_CTRL_H &&
         x >= CARD_X && x < CARD_X + CARD_W) {
-        if (g_state.kickstand_down) set_screen(Screen::LOCK_CONFIRM);
-        else                        show_toast("Deploy Kickstand To Lock");
+        request_lock();
         return;
     }
     int h_tap = hit_segmented2(x, y, 1);
-    if (h_tap == 0) ble_send_command("0:C-1-4@");
-    else if (h_tap == 1) ble_send_command("0:C-1-5@");
+    if (h_tap >= 0) ble_send_command(h_tap == 0 ? "0:C-1-4@" : "0:C-1-5@");
 
     int b_tap = hit_segmented2(x, y, 2);
-    if (b_tap == 0) {
-        ble_send_command("0:C-1-16@");
-        g_state.badge_light = BikeState::BadgeLight::On;
-    } else if (b_tap == 1) {
-        ble_send_command("0:C-1-17@");
-        g_state.badge_light = BikeState::BadgeLight::Off;
-    }
+    if (b_tap >= 0) set_badge_light(b_tap == 0);
 
     int bw_tap = hit_segmented2(x, y, 3);
-    if (bw_tap == 0)      g_state.brake_warn_enabled = true;
-    else if (bw_tap == 1) g_state.brake_warn_enabled = false;
+    if (bw_tap >= 0) g_state.brake_warn_enabled = (bw_tap == 0);
 }
 
 }  // namespace BikeSettings

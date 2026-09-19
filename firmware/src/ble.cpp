@@ -245,32 +245,26 @@ bool connect_and_subscribe() {
         return false;
     }
 
-    // Bond if we aren't already
-    if (!g_client->secureConnection()) {
-        Serial.println("[BLE] secureConnection() failed");
+    auto fail = [](const char* msg) {
+        Serial.println(msg);
         g_client->disconnect();
         return false;
-    }
+    };
+
+    // Bond if we aren't already
+    if (!g_client->secureConnection())
+        return fail("[BLE] secureConnection() failed");
 
     NimBLERemoteService* svc = g_client->getService(REEVO_SVC_UUID);
-    if (!svc) {
-        Serial.println("[BLE] ISSC service not found");
-        g_client->disconnect();
-        return false;
-    }
+    if (!svc)
+        return fail("[BLE] ISSC service not found");
     g_write_char  = svc->getCharacteristic(REEVO_WRITE_UUID);
     g_notify_char = svc->getCharacteristic(REEVO_NOTIFY_UUID);
-    if (!g_write_char || !g_notify_char) {
-        Serial.println("[BLE] required characteristics missing");
-        g_client->disconnect();
-        return false;
-    }
+    if (!g_write_char || !g_notify_char)
+        return fail("[BLE] required characteristics missing");
     if (!g_notify_char->canNotify() ||
-        !g_notify_char->subscribe(true, on_notify_cb)) {
-        Serial.println("[BLE] subscribe() failed");
-        g_client->disconnect();
-        return false;
-    }
+        !g_notify_char->subscribe(true, on_notify_cb))
+        return fail("[BLE] subscribe() failed");
 
     g_state.ble = BikeState::BleStatus::Connected;
     g_state.reconnect_attempt = 0;

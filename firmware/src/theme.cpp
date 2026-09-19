@@ -21,6 +21,12 @@ uint16_t rgb888_to_565(uint32_t rgb) {
     return ((r >> 3) << 11) | ((g >> 2) << 5) | (b >> 3);
 }
 
+bool set_color(uint16_t& slot, const char* key, uint32_t rgb888) {
+    slot = rgb888_to_565(rgb888);
+    g_prefs.putUShort(key, slot);
+    return true;
+}
+
 }  // namespace
 
 namespace theme {
@@ -35,16 +41,7 @@ void setup() {
 uint16_t main_bg()    { return g_bg; }
 uint16_t main_speed() { return g_speed; }
 
-bool set_main_bg(uint32_t rgb888) {
-    g_bg = rgb888_to_565(rgb888);
-    g_prefs.putUShort("bg", g_bg);
-    return true;
-}
-
-bool set_main_speed(uint32_t rgb888) {
-    g_speed = rgb888_to_565(rgb888);
-    g_prefs.putUShort("speed", g_speed);
-    return true;
-}
+bool set_main_bg(uint32_t rgb888)    { return set_color(g_bg,    "bg",    rgb888); }
+bool set_main_speed(uint32_t rgb888) { return set_color(g_speed, "speed", rgb888); }
 
 }  // namespace theme
